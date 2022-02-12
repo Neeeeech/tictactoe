@@ -92,9 +92,17 @@ class TicTacToe:
             else:
                 self.play_o(x_coord, y_coord)
 
+    def on_click(self, x, y):
+        """plays a marker on click"""
+        if self.window_min < x < self.window_max and self.window_min < y < self.window_max:
+            x_coord = int((x - self.window_min) // self.grid_width)
+            y_coord = int(self.board_len - 1 - ((y - self.window_min) // self.grid_width))
+            self.play(x_coord, y_coord)
+            print(self)
+
 
 if __name__ == '__main__':
-    game = TicTacToe(10, 3, 600)
+    game = TicTacToe(3, 3, 600)
     win = pyglet.window.Window(600, 600)
     game.play(0,9)
     game.play(1,1)
@@ -104,5 +112,9 @@ if __name__ == '__main__':
     def on_draw():
         win.clear()
         game.batch.draw()
+
+    @win.event()
+    def on_mouse_press(x, y, button, modifiers):
+        game.on_click(x, y)
 
     pyglet.app.run()
