@@ -1,5 +1,69 @@
 import pyglet
 
+def const_gen(const):
+    """generates a generator that spits out a constant"""
+    while True:
+        yield const
+
+def left_iter(marker_coord, min_coord):
+    """generates a generator that counts leftwards to just before the min_coord"""
+    for i in range(marker_coord - 1, min_coord, -1):
+        yield i
+
+def right_iter(marker_coord, max_coord):
+    """generates a generator that counts rightwards to just before the max_coord"""
+    for i in range(marker_coord + 1, max_coord):
+        yield i
+
+def count_continuous(board, marker, x_iter, y_iter):
+    """iterates through x_iter and y_iter for coordinates to count the continuous chain of the same marker along line"""
+    counter = 0
+    try:
+        while True:
+            # checks the next coordinate for if it's the right marker. otherwise breaks out of loop.
+            if board[next(y_iter)][next(x_iter)] == marker:
+                counter += 1
+            else:
+                break
+    except StopIteration:
+        return counter
+    return counter
+
+def check_win(board, board_len, win_len, x_marker, y_marker):
+    """for given board and most recently placed marker, see if it has caused a win"""
+    marker = board[y_marker][x_marker]
+    horizontal_counter, vertical_counter, diag1_counter, diag2_counter = 1, 1, 1, 1
+
+    # saves the bounds for easy reference later
+    x_min = -1 if -1 > x_marker - win_len else x_marker - win_len
+    x_max = board_len if board_len < x_marker + win_len else x_marker + win_len
+    y_min = -1 if -1 > y_marker - win_len else y_marker - win_len
+    y_max = board_len if board_len < y_marker + win_len else y_marker + win_len
+
+    # left, right. returns true if horizontally won
+    horizontal_counter += count_continuous(board, marker, left_iter(x_marker, x_min), const_gen(y_marker))
+    horizontal_counter += count_continuous(board, marker, right_iter(x_marker, x_max), const_gen(y_marker))
+    if horizontal_counter >= win_len:
+        return True
+
+    # up, down. returns true if vertically won
+    vertical_counter += count_continuous(board, marker, const_gen(x_marker), left_iter(y_marker, y_min))
+    vertical_counter += count_continuous(board, marker, const_gen(x_marker), right_iter(y_marker, y_max))
+    if vertical_counter >= win_len:
+        return True
+
+    # diag1 - bottom left to top right.
+    diag1_counter += count_continuous(board, marker, left_iter(x_marker, x_min), right_iter(y_marker, y_max))
+    diag1_counter += count_continuous(board, marker, right_iter(x_marker, x_max), left_iter(y_marker, y_min))
+    if diag1_counter >= win_len:
+        return True
+
+    # diag2 - top left to bottom right.
+    diag2_counter += count_continuous(board, marker, left_iter(x_marker, x_min), left_iter(y_marker, y_min))
+    diag2_counter += count_continuous(board, marker, right_iter(x_marker, x_max), right_iter(y_marker, y_max))
+    if diag2_counter >= win_len:
+        return True
+
 class TicTacToe:
     X, O = 1, 2
 
@@ -91,6 +155,8 @@ class TicTacToe:
                 self.play_x(x_coord, y_coord)
             else:
                 self.play_o(x_coord, y_coord)
+        if check_win(self.board, self.board_len, self.win_len, x_coord, y_coord):
+            print('\n\nWIN!!!!!!!!!!\n\n')
 
     def on_click(self, x, y):
         """plays a marker on click"""
@@ -98,14 +164,11 @@ class TicTacToe:
             x_coord = int((x - self.window_min) // self.grid_width)
             y_coord = int(self.board_len - 1 - ((y - self.window_min) // self.grid_width))
             self.play(x_coord, y_coord)
-            print(self)
 
 
 if __name__ == '__main__':
     game = TicTacToe(3, 3, 600)
     win = pyglet.window.Window(600, 600)
-    game.play(0,9)
-    game.play(1,1)
     print(game)
 
     @win.event()
